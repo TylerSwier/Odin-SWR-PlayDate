@@ -15,6 +15,7 @@ input: Input
 
 mesh:             Mesh
 camera:           Camera
+zBuffer: 	      ^ZBuffer
 projectionMatrix: Matrix4x4
 translation:      Vector3
 rotation:         Vector3
@@ -34,6 +35,7 @@ eventHandler :: proc "c" (pd_api: ^pd.Api, event: pd.System_Event, arg: u32) -> 
 
 		mesh             = MakeMesh()
         camera           = MakeCamera({0.0, 0.0, -3.0}, {0.0, 0.0, -1.0})
+        zBuffer          = new(ZBuffer)
         projectionMatrix = MakeProjectionMatrix(FOV, SCREEN_WIDTH, SCREEN_HEIGHT, NEAR_PLANE, FAR_PLANE)
         translation      = Vector3{0.0, 0.0, 0.0}
         rotation         = Vector3{0.0, 0.0, 0.0}
@@ -66,10 +68,12 @@ Update :: proc "c" (user_data: rawptr) -> pd.Update_Result {
 	ApplyTransformations(&mesh.transformedVertices, mesh.vertices, viewMatrix)
 
 	DisplayClear(&display)
+	ClearZBuffer(zBuffer)
 
 	switch renderMode {
         case 0: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, false)
         case 1: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, true)
+        case 2: DrawUnlit(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, zBuffer)
     }
 
 	DisplayPresent(&display)
