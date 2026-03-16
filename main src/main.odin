@@ -43,10 +43,14 @@ eventHandler :: proc "c" (pd_api: ^pd.Api, event: pd.System_Event, arg: u32) -> 
         translation      = Vector3{0.0, 0.0, 0.0}
         rotation         = Vector3{0.0, 0.0, 0.0}
         scale            = Vector3{1.0, 1.0, 1.0}
-        renderMode       = renderModesCount - 1
+        renderMode       = renderModesCount - 2
         light            = MakeLight({0.0, 1.0, 0.0}, 1.0)
         ambient          = 0.2
         intensity        = 1.0
+
+        if renderMode == 2 {
+        	intensity = 0.5
+        }
 
 		pd_api.system.set_update_callback(Update, nil)
 	case .Terminate:
