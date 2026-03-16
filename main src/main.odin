@@ -44,6 +44,9 @@ eventHandler :: proc "c" (pd_api: ^pd.Api, event: pd.System_Event, arg: u32) -> 
         rotation         = Vector3{0.0, 0.0, 0.0}
         scale            = Vector3{1.0, 1.0, 1.0}
         renderMode       = renderModesCount - 1
+        light            = MakeLight({0.0, 1.0, 0.0}, 1.0)
+        ambient          = 0.2
+        intensity        = 1.0
 
 		pd_api.system.set_update_callback(Update, nil)
 	case .Terminate:
@@ -73,10 +76,10 @@ Update :: proc "c" (user_data: rawptr) -> pd.Update_Result {
 	ClearZBuffer(zBuffer)
 
 	switch renderMode {
-        case 0: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, false)
-        case 1: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, true)
+        case 0: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, false)
+        case 1: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, true)
         case 2: DrawUnlit(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, zBuffer)
-        case 3: DrawFlatShaded(&display, mesh.transformedNormals, mesh.triangles,projectionMatrix, light, intensity, zBuffer, ambient)
+        case 3: DrawFlatShaded(&display, mesh.transformedVertices, mesh.triangles,projectionMatrix, light, intensity, zBuffer, ambient)
     }
 
 	DisplayPresent(&display)

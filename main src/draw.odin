@@ -8,7 +8,7 @@ DrawWireFrame :: proc(
 	vertices: []Vector3,
     triangles: []Triangle,
     projMat: Matrix4x4,
-    black: bool,
+    instensity: f32,
     cullBackFace: bool
 ) {
 	for &tri in triangles {
@@ -28,9 +28,9 @@ DrawWireFrame :: proc(
     continue
 	}
 
-	DrawLine(p1.xy, p2.xy, black)
-    DrawLine(p2.xy, p3.xy, black)
-    DrawLine(p3.xy, p1.xy, black)
+	DrawLine(p1.xy, p2.xy, intensity)
+    DrawLine(p2.xy, p3.xy, intensity)
+    DrawLine(p3.xy, p1.xy, intensity)
     }
 }
 
@@ -78,7 +78,7 @@ IsFaceOutsideFrustum :: proc(p1, p2, p3: Vector3) -> bool {
 }
 
 //that sweet magic
-DrawLine :: proc(a, b: Vector2, black: bool) {
+DrawLine :: proc(a, b: Vector2, intensity: f32) {
 	dX := b.x - a.x
 	dY := b.y - a.y
 
@@ -156,7 +156,7 @@ DrawFlatShaded :: proc(
     }
 
     intensity := math.clamp(Vector3DotProduct(crossNorm, light.direction), ambient, 1.0)
-
+    DrawFilledTriangle(&p1, &p2, &p3, intensity, zBuffer)
 	}
 }
 

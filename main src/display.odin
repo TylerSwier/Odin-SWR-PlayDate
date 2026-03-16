@@ -40,9 +40,9 @@ DisplaySetPixel :: proc(d: ^Display, x, y: i32, instensity: f32) {
     bitMask   := u8(1 << uint(7 - (x % 8)))
 
     if BayerDither(x, y, instensity) {
-        d.framebuffer[byteIndex] &~= bitMask  //black
+        d.framebuffer[byteIndex] |= bitMask  //white
     } else {
-        d.framebuffer[byteIndex] |=  bitMask  //white
+        d.framebuffer[byteIndex] &~=  bitMask  //black
     }
 }
 
