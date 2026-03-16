@@ -91,7 +91,7 @@ DrawLine :: proc(a, b: Vector2, black: bool) {
     y := a.y
 
     for i := 0; i <= int(longerDelta); i += 1 {
-        DisplaySetPixel(&display, i32(x), i32(y), true)
+        DisplaySetPixel(&display, i32(x), i32(y), intensity)
         x += incX
         y += incY
     }
@@ -102,7 +102,7 @@ DrawUnlit :: proc(
 	vertices: []Vector3,
     triangles: []Triangle,
     projMat: Matrix4x4,
-    black: bool,
+    intensity: f32,
     zBuffer: ^ZBuffer
 ){
 	for &tri in triangles {
@@ -121,13 +121,48 @@ DrawUnlit :: proc(
         if IsFaceOutsideFrustum(p1, p2, p3) {
             continue
         }
-        DrawFilledTriangle(&p1, &p2, &p3, true, zBuffer)
+        DrawFilledTriangle(&p1, &p2, &p3, intensity, zBuffer)
+	}
+}
+
+DrawFlatShaded :: proc(
+	display: ^Display,
+	vertices: []Vector3,
+    triangles: []Triangle,
+    projMat: Matrix4x4,
+    light: Light,
+    intensity: f32,
+    zBuffer: ^ZBuffer,
+    ambient:f32 = 0.2
+){
+	for &tri in triangles {
+    v1 := vertices[tri[0]]
+    v2 := vertices[tri[1]]
+    v3 := vertices[tri[2]]
+
+    cross := Vector3CrossProduct(v2 - v1, v3 - v1)
+    crossNorm := Vector3Normalize(cross)
+    toCamera := Vector3Normalize(v1)
+
+    if Vector3DotProduct(crossNorm, toCamera) >= 0.0 {
+        continue
+    }
+    p1 := ProjectToScreen(projMat, v1)
+    p2 := ProjectToScreen(projMat, v2)
+    p3 := ProjectToScreen(projMat, v3)
+
+    if IsFaceOutsideFrustum(p1, p2, p3) {
+        continue
+    }
+
+    intensity := math.clamp(Vector3DotProduct(crossNorm, light.direction), ambient, 1.0)
+
 	}
 }
 
 DrawFilledTriangle :: proc(
 	p1, p2, p3: ^Vector3,
-	black: bool,
+	intensity: f32,
 	zBuffer: ^ZBuffer
 ){
 	Sort(p1, p2, p3)
@@ -148,7 +183,7 @@ DrawFilledTriangle :: proc(
             	xStart, xEnd = xEnd, xStart
            	}
 	        for x := xStart; x <= xEnd; x += 1 {
-		        DrawPixel(x, y, p1, p2, p3, true, zBuffer)
+		        DrawPixel(x, y, p1, p2, p3, intensity, zBuffer)
 	        }
 		}
 	}
@@ -166,7 +201,7 @@ DrawFilledTriangle :: proc(
             }
 
             for x := xStart; x <= xEnd; x += 1 {
-                DrawPixel(x, y, p1, p2, p3, true, zBuffer)
+                DrawPixel(x, y, p1, p2, p3, intensity, zBuffer)
 			}
 		}
     }
@@ -175,7 +210,7 @@ DrawFilledTriangle :: proc(
 DrawPixel :: proc(
     x, y: f32,
     p1, p2, p3: ^Vector3,
-    black: bool,
+    intensity: f32,
     zBuffer: ^ZBuffer
 ) {
     ix := i32(x)
@@ -195,7 +230,7 @@ DrawPixel :: proc(
 
     zIndex := SCREEN_WIDTH*iy + ix
     if (depth < zBuffer[zIndex]) {
-        DisplaySetPixel(&display, ix, iy, true)
+        DisplaySetPixel(&display, ix, iy, intensity)
         zBuffer[zIndex] = depth
     }
 }

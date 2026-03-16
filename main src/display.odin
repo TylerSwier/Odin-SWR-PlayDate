@@ -32,17 +32,17 @@ DisplayClear :: proc(d: ^Display) {
 // Set a single pixel at (x, y).
 // Pass black=true for a dark pixel, false for white.
 // Pixels are packed 8-per-byte, MSB first. 1 = white, 0 = black.
-DisplaySetPixel :: proc(d: ^Display, x, y: i32, black: bool) {
+DisplaySetPixel :: proc(d: ^Display, x, y: i32, instensity: f32) {
     if x < 0 || x >= SCREEN_WIDTH || y < 0 || y >= SCREEN_HEIGHT {
         return
     }
     byteIndex := y * ROW_BYTES + x / 8
     bitMask   := u8(1 << uint(7 - (x % 8)))
 
-    if black {
-        d.framebuffer[byteIndex] &~= bitMask  // clear bit = black
+    if BayerDither(x, y, instensity) {
+        d.framebuffer[byteIndex] &~= bitMask  //black
     } else {
-        d.framebuffer[byteIndex] |=  bitMask  // set bit   = white
+        d.framebuffer[byteIndex] |=  bitMask  //white
     }
 }
 

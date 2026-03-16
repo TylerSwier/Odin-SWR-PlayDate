@@ -21,8 +21,11 @@ translation:      Vector3
 rotation:         Vector3
 scale:            Vector3
 renderMode:       i8
+intensity:        f32
+light:            Light
+ambient:          f32
 
-renderModesCount :: i8(3)
+renderModesCount :: i8(4)
 
 @(export)
 eventHandler :: proc "c" (pd_api: ^pd.Api, event: pd.System_Event, arg: u32) -> i32 {
@@ -64,8 +67,7 @@ Update :: proc "c" (user_data: rawptr) -> pd.Update_Result {
     modelMatrix       := Mat4Mul(translationMatrix, Mat4Mul(rotationMatrix, scaleMatrix))
     viewMatrix        := MakeViewMatrix(camera.position, camera.target)
     viewMatrix         = Mat4Mul(viewMatrix, modelMatrix)
-
-	ApplyTransformations(&mesh.transformedVertices, mesh.vertices, viewMatrix)
+    ApplyTransformations(&mesh.transformedVertices, mesh.vertices, viewMatrix)
 
 	DisplayClear(&display)
 	ClearZBuffer(zBuffer)
@@ -73,7 +75,8 @@ Update :: proc "c" (user_data: rawptr) -> pd.Update_Result {
 	switch renderMode {
         case 0: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, false)
         case 1: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, true)
-        case 2: DrawUnlit(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, true, zBuffer)
+        case 2: DrawUnlit(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, zBuffer)
+        case 3: DrawFlatShaded(&display, mesh.transformedNormals, mesh.triangles,projectionMatrix, light, intensity, zBuffer, ambient)
     }
 
 	DisplayPresent(&display)
