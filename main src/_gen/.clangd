@@ -1,5 +1,0 @@
-#.clangd
-CompileFlags:
-  Add: [-DTARGET_EXTENSION]
-Diagnostics:
-  Suppress: '*'

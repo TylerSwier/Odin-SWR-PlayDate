@@ -1,7 +1,5 @@
 package main
 
-
-
 ZBuffer :: [SCREEN_WIDTH * SCREEN_HEIGHT]f32
 
 ClearZBuffer :: proc(zBuffer: ^ZBuffer) {

@@ -2,6 +2,7 @@ package main
 
 import pd "playdate"
 import "core:math"
+import "core:c"
 
 DrawWireFrame :: proc(
 	display: ^Display,
@@ -160,6 +161,157 @@ DrawFlatShaded :: proc(
 	}
 }
 
+DrawTexFlatShaded :: proc(
+	display: ^Display,
+	vertices: []Vector3,
+    triangles: []Triangle,
+    uvs: []Vector2,
+    light: Light,
+    bitmap: ^pd.Bitmap,
+    intensity: f32,
+    zBuffer: ^ZBuffer,
+    projMat: Matrix4x4,
+    ambient:f32 = 0.2
+){
+	for &tri in triangles {
+        v1 := vertices[tri[0]]
+        v2 := vertices[tri[1]]
+        v3 := vertices[tri[2]]
+
+        uv1 := uvs[tri[3]]
+        uv2 := uvs[tri[4]]
+        uv3 := uvs[tri[5]]
+
+        cross := Vector3CrossProduct(v2 - v1, v3 - v1)
+        crossNorm := Vector3Normalize(cross)
+        toCamera := Vector3Normalize(v1)
+
+        if (Vector3DotProduct(crossNorm, toCamera) >= 0.0) {
+            continue
+        }
+
+        p1 := ProjectToScreen(projMat, v1)
+        p2 := ProjectToScreen(projMat, v2)
+        p3 := ProjectToScreen(projMat, v3)
+
+        if (IsFaceOutsideFrustum(p1, p2, p3)) {
+            continue
+        }
+
+        intensity := math.clamp(Vector3DotProduct(crossNorm, light.direction), ambient, 1.0)
+
+        DrawTexTriFlatShaded(
+        	&p1, &p2, &p3,
+            &uv1, &uv2, &uv3,
+            bitmap, intensity, zBuffer
+        )
+	}
+}
+
+DrawTexTriFlatShaded :: proc(
+	p1, p2, p3: ^Vector3,
+    uv1, uv2, uv3: ^Vector2,
+    bitmap: ^pd.Bitmap,
+    intensity: f32,
+    zBuffer: ^ZBuffer,
+){
+	Sort(p1, p2, p3, uv1, uv2, uv3)
+
+    FloorXY(p1)
+    FloorXY(p2)
+    FloorXY(p3)
+
+    // Draw a flat-bottom triangle
+    if p2.y != p1.y {
+        invSlope1 := (p2.x - p1.x) / (p2.y - p1.y)
+        invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+        for y := p1.y; y <= p2.y; y += 1 {
+            xStart := p1.x + (y - p1.y) * invSlope1
+            xEnd := p1.x + (y - p1.y) * invSlope2
+
+            if xStart > xEnd {
+                xStart, xEnd = xEnd, xStart
+            }
+
+            for x := xStart; x <= xEnd; x += 1 {
+                DrawTexelFlatShaded(
+                    x, y,
+                    p1, p2, p3,
+                    uv1, uv2, uv3,
+                    bitmap, intensity, zBuffer
+                )
+            }
+        }
+    }
+// Draw a flat-top triangle
+    if p3.y != p1.y {
+        invSlope1 := (p3.x - p2.x) / (p3.y - p2.y)
+        invSlope2 := (p3.x - p1.x) / (p3.y - p1.y)
+
+        for y := p2.y; y <= p3.y; y += 1 {
+            xStart := p2.x + (y - p2.y) * invSlope1
+            xEnd := p1.x + (y - p1.y) * invSlope2
+
+            if xStart > xEnd {
+                xStart, xEnd = xEnd, xStart
+            }
+
+            for x := xStart; x <= xEnd; x += 1 {
+                DrawTexelFlatShaded(
+                    x, y,
+                    p1, p2, p3,
+                    uv1, uv2, uv3,
+                    bitmap, intensity, zBuffer
+                )
+            }
+        }
+    }
+}
+
+
+DrawTexUnlit :: proc(
+	display: ^Display,
+	vertices: []Vector3,
+    triangles: []Triangle,
+    uvs: []Vector2,
+    bitmap: ^pd.Bitmap,
+    zBuffer: ^ZBuffer,
+    projMat: Matrix4x4
+){
+    for &tri in triangles {
+        v1 := vertices[tri[0]]
+        v2 := vertices[tri[1]]
+        v3 := vertices[tri[2]]
+
+        uv1 := uvs[tri[3]]
+        uv2 := uvs[tri[4]]
+        uv3 := uvs[tri[5]]
+
+        if IsBackFace(v1, v2, v3) {
+            continue
+        }
+
+        p1 := ProjectToScreen(projMat, v1)
+        p2 := ProjectToScreen(projMat, v2)
+        p3 := ProjectToScreen(projMat, v3)
+
+        if (IsFaceOutsideFrustum(p1, p2, p3)) {
+            continue
+        }
+
+        DrawTexTriFlatShaded(
+            &p1, &p2, &p3,
+            &uv1, &uv2, &uv3,
+            bitmap,
+            1.0, // Unlit
+            zBuffer
+        )
+    }
+}
+
+
+
 DrawFilledTriangle :: proc(
 	p1, p2, p3: ^Vector3,
 	intensity: f32,
@@ -206,6 +358,57 @@ DrawFilledTriangle :: proc(
 		}
     }
 }
+
+DrawTexelFlatShaded :: proc(
+	x, y: f32,
+	p1, p2, p3: ^Vector3,
+	uv1, uv2, uv3: ^Vector2,
+	bitmap: ^pd.Bitmap,
+	intensity: f32,
+	zBuffer: ^ZBuffer
+){
+	ix := i32(x)
+	iy := i32(y)
+
+	if IsPointOutsideViewport(ix, iy){
+		return
+	}
+	p       := Vector2{x, y}
+	weights := BarycentricWeights(p1.xy, p2.xy, p3.xy, p)
+	alpha   := weights.x
+	beta    := weights.y
+	gamma   := weights.z
+
+	denom  := alpha*p1.z + beta*p2.z + gamma*p3.z
+	depth := 1.0 / denom
+
+	zIndex := SCREEN_WIDTH*iy +ix
+	if depth <= zBuffer[zIndex] {
+		interpU := ((uv1.x*p1.z)*alpha + (uv2.x*p2.z)*beta + (uv3.x*p3.z)*gamma) * depth
+		interpV := ((uv1.x*p1.z)*alpha + (uv2.x*p2.z)*beta + (uv3.x*p3.z)*gamma) * depth
+
+		width, height, rowBytes: c.int
+        mask, data: [^]u8
+        display.gfx.get_bitmap_data(bitmap, &width, &height, &rowBytes, &mask, &data)
+
+		texX := i32(interpU * f32(width)) % width
+		texY := i32(interpU * f32(height)) % height
+
+		// Read the pixel bit from the packed 1-bit data
+        byteIndex := texY * rowBytes + texX / 8
+        bitMask   := u8(1 << uint(7 - (texX % 8)))
+        isWhite   := (data[byteIndex] & bitMask) != 0
+
+		//tex := bitmap.pixels[texY*bitmap.width + texX]
+		//
+		// Use bitmap pixel to modulate intensity
+        texIntensity := intensity * (1.0 if isWhite else 0.0)
+
+		DisplaySetPixel(&display, ix, iy, texIntensity)
+        zBuffer[zIndex] = depth
+	}
+}
+
 
 DrawPixel :: proc(
     x, y: f32,

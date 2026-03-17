@@ -9,10 +9,6 @@ display: Display
 input: Input
 
 
-// translation : Vector3 = {0, 0, 0}
-// rotation    : Vector3 = {0, 0, 0}
-// scale       : Vector3 = {1, 1, 1}
-
 mesh:             Mesh
 camera:           Camera
 zBuffer: 	      ^ZBuffer
@@ -24,31 +20,35 @@ renderMode:       i8
 intensity:        f32
 light:            Light
 ambient:          f32
+bitmap:           ^pd.Bitmap
 
-renderModesCount :: i8(4)
+
+renderModesCount :: i8(6)
 
 @(export)
 eventHandler :: proc "c" (pd_api: ^pd.Api, event: pd.System_Event, arg: u32) -> i32 {
 	#partial switch event {
 	case .Init:
-		global_ctx = pd.playdate_context_create(pd_api)
-		context = global_ctx
-		display = DisplayInit(pd_api.graphics)
-		input   = InputInit(pd_api.system)
+		global_ctx  = pd.playdate_context_create(pd_api)
+		context     = global_ctx
+		display     = DisplayInit(pd_api.graphics)
+		input       = InputInit(pd_api.system)
 
 		mesh             = MakeMesh()
         camera           = MakeCamera({0.0, 0.0, -3.0}, {0.0, 0.0, -1.0})
+        bitmap           = pd_api.graphics.load_bitmap("PlayDate_UV_Test", nil)
         zBuffer          = new(ZBuffer)
         projectionMatrix = MakeProjectionMatrix(FOV, SCREEN_WIDTH, SCREEN_HEIGHT, NEAR_PLANE, FAR_PLANE)
         translation      = Vector3{0.0, 0.0, 0.0}
         rotation         = Vector3{0.0, 0.0, 0.0}
         scale            = Vector3{1.0, 1.0, 1.0}
-        renderMode       = renderModesCount - 2
+        renderMode       = renderModesCount - 1
         light            = MakeLight({0.0, 1.0, 0.0}, 1.0)
         ambient          = 0.2
         intensity        = 1.0
 
-        if renderMode == 2 {
+
+        if renderMode == 1 {
         	intensity = 0.5
         }
 
@@ -83,7 +83,9 @@ Update :: proc "c" (user_data: rawptr) -> pd.Update_Result {
         case 0: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, false)
         case 1: DrawWireFrame(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, true)
         case 2: DrawUnlit(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, intensity, zBuffer)
-        case 3: DrawFlatShaded(&display, mesh.transformedVertices, mesh.triangles,projectionMatrix, light, intensity, zBuffer, ambient)
+        case 3: DrawFlatShaded(&display, mesh.transformedVertices, mesh.triangles, projectionMatrix, light, intensity, zBuffer, ambient)
+        case 4: DrawTexUnlit(&display, mesh.transformedVertices, mesh.triangles, mesh.uvs, bitmap, zBuffer, projectionMatrix)
+        case 5: DrawTexFlatShaded(&display, mesh.transformedVertices, mesh.triangles, mesh.uvs, light, bitmap, intensity, zBuffer, projectionMatrix, ambient)
     }
 
 	DisplayPresent(&display)
