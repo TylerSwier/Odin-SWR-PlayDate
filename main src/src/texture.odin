@@ -17,12 +17,11 @@ BitmapTex :: struct {
 }
 
 
-LoadBitmap :: proc(gfx: ^pd.Api_Graphics_Procs, path: cstring) -> BitmapTex {
+LoadBitmap :: proc(gfx: ^pd.Api_Graphics_Procs, out_err, path: cstring) -> BitmapTex {
 	err: cstring
 	bitmap := gfx.load_bitmap(path, &err)
 
 	if bitmap == nil {
-	pd_api.system.log_to_console("Hello")
 		return BitmapTex{}
 	}
 

@@ -13,7 +13,7 @@ Bitmap_Data :: struct {
     height: i32,
     row_bytes: i32,
     mask: []u8,
-    data: []u8, 
+    data: []u8,
 }
 
 Solid_Color :: enum {
@@ -70,10 +70,10 @@ Text_Alignment :: enum {
 Video_Player    :: distinct Opaque_Struct
 
 Video_Player_Info :: struct {
-    width           : i32, 
+    width           : i32,
     height          : i32,
     frame_rate      : f32,
-    frame_count     : i32, 
+    frame_count     : i32,
     current_frame   : i32,
 }
 
@@ -119,7 +119,7 @@ Api_Graphics_Procs :: struct {
     fill_ellipse               : proc "c" (x, y, width, height: c.int, start_angle, end_angle: f32, color: Color),
     draw_scaled_bitmap         : proc "c" (bitmap: ^Bitmap, x, y: c.int, x_scale, y_scale: f32),
     draw_text                  : proc "c" (text: cstring, len: c.size_t, encoding: String_Encoding, x, y: c.int) -> i32,
-    
+
     // LCDBitmap
     new_bitmap                 : proc "c" (width, height: c.int, bg_color: Color) -> ^Bitmap,
     free_bitmap                : proc "c" (bitmap: ^Bitmap),
@@ -186,10 +186,9 @@ Api_Graphics_Procs :: struct {
     set_pixel                  : proc "c" (x, y: c.int, color: Color),
     get_bitmap_pixel           : proc "c" (bitmap: ^Bitmap, x, y: c.int) -> Solid_Color,
     get_bitmap_table_info      : proc "c" (table: ^Bitmap_Table, count, width: ^c.int),
-    
+
     // 2.6
     draw_text_in_rect          : proc "c" (text: cstring, length: c.size_t, encoding: String_Encoding, x, y, width, height: c.int, wrap: Text_Wrapping_Mode, align: Text_Alignment),
 }
 
 // =================================================================
-

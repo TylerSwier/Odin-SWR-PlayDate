@@ -19,8 +19,8 @@ if %ERRORLEVEL% neq 0 (
     exit 1
 )
 
-if exist ".\assets\" (
-    robocopy ".\assets\" ".\out_sim\intermediate\assets\" /S /MIR
+if exist "./assets/" (
+    robocopy "./assets/" "./out_sim/intermediate/assets/" /S /MIR
 )
 
 :: Compile for the Playdate simulator
@@ -32,4 +32,3 @@ if %ERRORLEVEL% neq 0 (
 
 :: Run the simulator
 %PLAYDATE_SDK_PATH%\bin\PlaydateSimulator out_sim/bin/%game_name%.pdx
-

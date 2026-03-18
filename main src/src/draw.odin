@@ -78,7 +78,7 @@ IsFaceOutsideFrustum :: proc(p1, p2, p3: Vector3) -> bool {
     return false
 }
 
-//that sweet magic
+
 DrawLine :: proc(a, b: Vector2, intensity: f32) {
 	dX := b.x - a.x
 	dY := b.y - a.y
@@ -165,12 +165,12 @@ DrawTexFlatShaded :: proc(
 	display: ^Display,
 	vertices: []Vector3,
     triangles: []Triangle,
+    projMat: Matrix4x4,
     uvs: []Vector2,
     light: Light,
     bitmap: ^pd.Bitmap,
     intensity: f32,
     zBuffer: ^ZBuffer,
-    projMat: Matrix4x4,
     ambient:f32 = 0.2
 ){
 	for &tri in triangles {
@@ -274,10 +274,10 @@ DrawTexUnlit :: proc(
 	display: ^Display,
 	vertices: []Vector3,
     triangles: []Triangle,
+    projMat: Matrix4x4,
     uvs: []Vector2,
     bitmap: ^pd.Bitmap,
     zBuffer: ^ZBuffer,
-    projMat: Matrix4x4
 ){
     for &tri in triangles {
         v1 := vertices[tri[0]]
@@ -309,8 +309,6 @@ DrawTexUnlit :: proc(
         )
     }
 }
-
-
 
 DrawFilledTriangle :: proc(
 	p1, p2, p3: ^Vector3,
@@ -384,6 +382,7 @@ DrawTexelFlatShaded :: proc(
 
 	zIndex := SCREEN_WIDTH*iy +ix
 	if depth <= zBuffer[zIndex] {
+
 		interpU := ((uv1.x*p1.z)*alpha + (uv2.x*p2.z)*beta + (uv3.x*p3.z)*gamma) * depth
 		interpV := ((uv1.x*p1.z)*alpha + (uv2.x*p2.z)*beta + (uv3.x*p3.z)*gamma) * depth
 
@@ -437,7 +436,6 @@ DrawPixel :: proc(
         zBuffer[zIndex] = depth
     }
 }
-
 
 BarycentricWeights :: proc(a, b, c, p: Vector2) -> Vector3 {
 	ac := c - a
